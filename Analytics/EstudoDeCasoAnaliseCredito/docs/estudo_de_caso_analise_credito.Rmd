@@ -1,0 +1,217 @@
+---
+title: "Análise Exploratória de Dados"
+author: "Luiz Carlos Castro Cunha Junior"
+date: "29/05/2021"
+output: html_document
+---
+![](download.png)
+
+## Estudo de Caso: Limite de Crédito
+A base de dados traz informações dos clientes de um banco que solicitaram limite de crédito. Durante a análise deverá ser respondida às seguintes questões de negócio:
+
+* Qual a idade média dos clientes presentes no banco de dados? 
+* Qual o valor do mínimo, máximo, mediana, Q1 e Q3 da variável idade? 
+* Existem clientes com idades discrepantes? Analise o boxplot.
+* Existem clientes que possuem rendimento total discrepante em relação aos demais clientes? Analise o boxplot. 
+* A partir de qual valor o rendimento é considerado discrepante?
+* A variável rendimento total pode ser considerada simétrica?
+* Existem clientes que possuem salário discrepante em relação aos demais clientes? 
+* A partir de qual valor o salário é considerado discrepante?
+* A variável salário pode ser considerada simétrica?
+* Existem clientes que possuem limite de cheque especial discrepante em relação aos demais clientes? Analise o boxplot. 
+* A partir de qual valor o limite de cheque especial é considerado discrepante?
+* A variável limite de cheque especial pode ser considerada simétrica?
+
+```{r, include=FALSE}
+setwd("C:/Users/thiag/OneDrive/Área de Trabalho/FIA- Analytics_DataScience/Analytics/20-05-21/20.05.2021 e 25.05.2021 - Analise Exploratória de Dados - Profa. Patricia Ueda")
+
+```
+
+### Carregando os pacotes a serem utilizados
+
+```{r Carregando os pacotes a serem utilizados, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(readxl)
+library(rstatix)
+library(moments)
+library(knitr)
+library(rmarkdown)
+library(kableExtra)
+library(emmeans)
+library(htmltools)
+```
+### Importando o Conjunto de Dados
+
+```{r Importando os dados e visualizando as primeiras colunas, warnings = FALSE}
+
+dataset<-readxl::read_xlsx("Exercícios.xlsx",
+                  sheet = "Base de Dados 1")
+colnames(dataset)[3]<-'RendimentoTotal'
+
+knitr::kable(head(dataset,5))
+```
+### Visualizando o tipo de dados das variáveis
+
+```{r Visualizando os tipos de dados}
+
+str(dataset)
+``` 
+
+### Perguntas de Negócio
+
+> Qual a idade média dos clientes presentes no banco de dados?
+
+A idade média dos clientes é `r round(mean(dataset$Idade),2)`
+
+> Qual o valor do mínimo, máximo, mediana, Q1 e Q3 da variável idade?
+
+* Idade Mínima:`r summary(dataset$Idade)[1]`
+* Idade Máxima:`r summary(dataset$Idade)[2]`
+* Mediana de Idade:`r summary(dataset$Idade)[1]`
+* Primeiro Quartil:`r quantile(dataset$Idade,0.25)`
+* Terceiro Quartil:`r quantile(dataset$Idade,0.75)`
+
+> Existem clientes com idades discrepantes? 
+
+Conforme podemos analisar no gráfico abaixo *não temos clientes comidades discrepantes* em relação aos outros clientes.
+
+```{r,echo =FALSE , warning=FALSE}
+dataset %>%
+  ggplot(aes(dataset$Idade)) +
+  theme_classic() +
+  stat_boxplot(fill = "orange") +
+  labs(x = "Idade",
+       y = "Distribuição")
+```
+
+> Existem clientes que possuem rendimento total discrepante em relação aos demais clientes? 
+
+Podemos observar no gráfico abaixo que possuímos clientes cujo rendimento total é considerado discrepante em relação aos outros clientes. 
+```{r Boxplot do rendimento dos clientes,echo=FALSE, warning= FALSE}
+dataset %>%
+  ggplot(aes(dataset$`RendimentoTotal`)) +
+  theme_minimal() + 
+  stat_boxplot(fill = "orange") + 
+  labs(title = "Distribuição da variável Rendimento",
+       x = "Rendimento",
+       y = "Distribuição")
+```
+
+> A partir de qual valor o rendimento é considerado discrepante?
+
+```{r,include = FALSE}
+discrepanciaRendimentoTotal <- unname(quantile(dataset$RendimentoTotal,0.75)[1] + 1.5 * IQR(dataset$RendimentoTotal))
+```
+
+A partir do rendimento total de `r as.integer(discrepanciaRendimentoTotal) `
+
+> A variável rendimento total pode ser considerada simétrica?
+
+Não, ela é assimétrica para a direita em decorrência de termos a média superior a mediana, conforme podemos observar nos valores abaixo e no histograma.
+
+* Média: `r summary(dataset$RendimentoTotal)[1] ` 
+* Mediana: `r summary(dataset$RendimentoTotal[3])`
+* Coeficiente de assimetria: `r skewness(dataset$RendimentoTotal)`
+
+
+```{r, echo = FALSE, warning=FALSE}
+
+dataset %>%
+  ggplot(aes(dataset$`RendimentoTotal`))+
+  theme_minimal() +
+  geom_histogram(fill = "orange", bins = 40) +
+  labs(x = "Rendimento Total")
+```
+
+> Existem clientes que possuem salário discrepante em relação aos demais clientes?
+
+
+
+```{r, echo = FALSE, warning=FALSE}
+dataset %>%
+  ggplot(aes(dataset$Salário)) +
+  theme_minimal()+
+  geom_boxplot(fill = "orange") +
+  labs(x = "Salário")
+```
+
+> A partir de qual valor o salário é considerado discrepante?
+
+```{r,include = FALSE}
+discrepanciaSalário <- unname(quantile(dataset$Salário,0.75)[1] + 1.5 * IQR(dataset$Salário))
+```
+
+O salário pode ser considerado discrepante a partir de R$`r as.character(discrepanciaSalário) ` 
+
+> A variável salário pode ser considerada simétrica?
+
+Não. A variável é assimétrica para a direita em decorrência de termos a sua média superior a mediana, conforme podemos observar nos valores abaixo e no histograma.
+
+* Média: `r summary(dataset$Salário)[1] ` 
+* Mediana: `r summary(dataset$Salário)[3]`
+* Coeficiente de assimetria: `r skewness(dataset$Salário)`
+
+
+```{r, echo = FALSE, warning=FALSE}
+
+dataset %>%
+  ggplot(aes(dataset$Salário))+
+  theme_minimal() +
+  geom_histogram(fill = "orange", bins = 40) +
+  labs(x = "Salário",
+       y = "Distribuição")
+```
+
+> Existem clientes que possuem limite de cheque especial discrepante em relação aos demais clientes?  
+
+Sim.
+
+
+```{r, echo =FALSE, warning=FALSE}
+
+dataset %>%
+  ggplot(aes(dataset$`Limite do Cheque Especial`))+
+  theme_minimal()+
+  geom_boxplot(fill = "orange") + 
+  xlab("Limite do Cheque Especial")
+
+```
+
+
+> A partir de qual valor o limite de cheque especial é considerado discrepante?
+
+```{r,include = FALSE}
+colnames(dataset)[6]<- "LimiteDoChequeEspecial"
+
+discrepanciaLimteChequeEspecial <- unname(quantile(dataset$LimiteDoChequeEspecial,0.75)[1] + 1.5 * IQR(dataset$LimiteDoChequeEspecial))
+
+```
+
+O valor do limite do cheque especial pode ser considerado discrepante a partir de R$ `r as.character(discrepanciaLimteChequeEspecial) `
+
+
+
+> A variável limite de cheque especial pode ser considerada simétrica?
+
+
+Não, ela é assimétrica para a direita em decorrência de termos a média superior a mediana, conforme podemos observar nos valores abaixo e no histograma.
+
+
+
+* Média: `r summary(dataset$LimiteDoChequeEspecial)[1] ` 
+* Mediana: `r summary(dataset$LimiteDoChequeEspecial[3])`
+* Coeficiente de assimetria: `r skewness(dataset$LimiteDoChequeEspecial)`
+
+
+
+```{r, echo = FALSE, warning=FALSE}
+
+dataset %>%
+  ggplot(aes(dataset$LimiteDoChequeEspecial))+
+  theme_minimal() +
+  geom_histogram(fill = "orange", bins = 40) +
+  labs(x = "Limite do Cheque Especial")
+```
+
+
+
