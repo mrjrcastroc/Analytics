@@ -1,5 +1,5 @@
 # LABDATA
-Projetos desenvolvidos durando o MBA em Analytics &amp; Data Science - LABDATA FIA
+Projetos desenvolvido durando o MBA em Analytics &amp; Data Science - LABDATA FIA
 
 Para visualiação basta clicar no link abaixo:
 
