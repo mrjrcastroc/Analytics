@@ -1,0 +1,215 @@
+---
+title: "Análise Exploratória de Dados"
+author: "Luiz Carlos Castro Cunha Junior"
+date: "29/05/2021"
+output:
+  html_document:
+    df_print: paged
+  word_document: default
+  pdf_document: default
+---
+
+  ![](download.png)
+
+## Estudo de Caso: Telecom
+A base de dados traz informações dos clientes de uma telecom que cancelaram ou não sua conta.Durante a análise deverá ser respondida às seguintes questões de negócio:
+  
+*  Quantos clientes a base de dados possui? Quantos são mulheres? E de forma relativa, quantas são mulheres?
+*  Quais são os valores da média, mediana, mínimo, máximo e quartis do tempo de relacionamento? 
+*  Com base na distribuição de frequências do tempo de relacionamento, qual a proporção de clientes que ainda não completaram 1 ano de relacionamento? 
+*  Qual a proporção de clientes que possuem 10 anos de relacionamento?
+*  Qual o % de clientes que têm 1 produto? E 2 produtos? Utilize a variável Num_de_Produtos.
+*  Qual o total de clientes que já cancelaram os produtos? E que não cancelaram? Qual a frequência relativa de cada categoria? Considere 1 para o cliente que cancelou e 0 para o cliente que não cancelou.
+
+  ```{r, include=FALSE}
+setwd("C:/Users/thiag/OneDrive/Área de Trabalho/FIA- Analytics_DataScience/Analytics/20-05-21/20.05.2021 e 25.05.2021 - Analise Exploratória de Dados - Profa. Patricia Ueda/Exercicio2")
+
+```
+
+### Carregando os pacotes a serem utilizados
+
+```{r Carregando os pacotes a serem utilizados, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(readxl)
+library(rstatix)
+library(moments)
+library(knitr)
+library(rmarkdown)
+library(kableExtra)
+library(emmeans)
+library(htmltools)
+library(dplyr)
+library(questionr)
+
+
+```
+### Importando o Conjunto de Dados
+
+```{r Importando os dados e visualizando as primeiras colunas, warnings = FALSE}
+
+dataset<-readxl::read_xlsx("Exercícios.xlsx",
+                           sheet = "Base de Dados 2")
+
+
+```
+### Visualizando o tipo de dados das variáveis
+
+```{r Visualizando os tipos de dados}
+str(dataset)
+
+``` 
+
+## visualizando as primeiras linhas do Dataset
+
+```{r, echo=TRUE}
+kbl(dataset[1:5,2:5]) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+
+```
+
+### Perguntas de Negócio
+
+> Quantos clientes a base de dados possui? Quantos são mulheres? E de forma relativa, quantas são mulheres?
+
+ 
+```{r}
+total_registros <- nrow(dataset)
+names(total_registros) <-"Total de Clientes"
+
+dfSexo <- data.frame(c(table(dataset$Sexo)[1],
+             table(dataset$Sexo)[2],
+             total_registros),
+           c(prop.table(table(dataset$Sexo))[1] * 100,
+             prop.table(table(dataset$Sexo))[2] * 100,
+             prop.table(table(total_registros)))
+           )
+names(dfSexo) <- c("Quantidade", "Frequência")
+
+kbl(dfSexo) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+
+
+```
+
+> Quais são os valores da média, mediana, mínimo, máximo e quartis do tempo de relacionamento? 
+
+```{r}
+colnames(dataset)[3] <- "TempoRelacionamentoAnos"
+indices <- c("Média", "Mediana", "Primerio Quartil", "Segundo Quartil", "Terceiro Quartil", "Intervalo Interquartil")
+
+dfTempoRelacionalmento <- 
+              data.frame(
+                c(
+                    Média = mean(dataset$TempoRelacionamentoAnos),
+                    Mediana =median(dataset$TempoRelacionamentoAnos),
+                    PrimeiroQuartil = unname(quantile(dataset$TempoRelacionamentoAnos,0.25)),
+                    SegundoQuartil  = unname(quantile(dataset$TempoRelacionamentoAnos, 0.50)),
+                    TerceiroQuartil = unname(quantile(dataset$TempoRelacionamentoAnos, 0.75)),
+                    IntervaloInterquartil = IQR(dataset$TempoRelacionamentoAnos)
+                  ))
+colnames(dfTempoRelacionalmento) <-"Resultdo"
+
+
+kbl(dfTempoRelacionalmento) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+
+```
+> Com base na distribuição de frequências do tempo de relacionamento, qual a proporção de clientes que ainda não completaram 1 ano de relacionamento?
+
+
+* 4.1 % dos clientes não completaram 1 ano de relacionamento.
+
+> Qual a proporção de clientes que possuem 10 anos de relacionamento?
+
+* 4.9 % dos clientes possuem 10 anos de relacionamento.
+
+
+```{r}
+dataset$TempoRelacionamentoAnos<- 
+  ifelse(dataset$TempoRelacionamentoAnos > 0,paste(dataset$TempoRelacionamentoAnos, " Anos"),"Não completou 1 Ano")
+      
+
+dfTabelaFrequenciaTempoRelacionamento <- questionr::freq(dataset$TempoRelacionamentoAnos,
+                                         total = TRUE)
+
+colnames(dfTabelaFrequenciaTempoRelacionamento) <- c("Frequência Relativa",
+                                                     "Frequência Absoluta")
+
+kbl(dfTabelaFrequenciaTempoRelacionamento[1:2]) %>%
+    kable_styling(bootstrap_options = c("striped", "hover"))
+
+
+```
+> Qual o % de clientes que têm 1 produto? E 2 produtos? 
+
+Podemos observar na tabela abaixo que 96,7% dos clientes possuem entre 1 e 2 produtos.
+
+Sendo que:
+
+*  Para 1 Produto  50.8% dos Clientes
+*  Para 2 Produtos 45.9% dos Clientes
+
+```{R}
+
+dfTabelaFrequenciaClientes <- questionr::freq(dataset$Num_de_Produtos,total = TRUE)
+
+colnames(dfTabelaFrequenciaClientes) <- c("FrequênciaRelativa",
+                                                     "Frequência Absoluta")
+rownames(dfTabelaFrequenciaClientes)[1:4] <- 
+  paste(rownames(dfTabelaFrequenciaClientes)[1:4], "Produtos")
+
+kbl(dfTabelaFrequenciaClientes[1:2]) %>%
+    kable_styling(bootstrap_options = c("striped", "hover"))
+
+```
+
+
+
+
+
+```{r, warning= FALSE}
+
+dataset %>%
+  ggplot(aes(dataset$Num_de_Produtos, fill = as.factor(dataset$Num_de_Produtos))) +
+  geom_bar(stat = "count")  +
+  labs(fill = "Número de Produtos")+
+  xlab("Número de Produtos") + 
+  ylab("Frequência")
+    
+```
+
+> Qual o total de clientes que já cancelaram os produtos? E que não cancelaram? 
+
+`r table(dataset$Cancelou)[2]` cancelaram seus produtos e `r table(dataset$Cancelou)[1]` não cancelaram seus produtos.
+
+> Qual a frequência relativa de cada categoria? Considere 1 para o cliente que cancelou e 0 para o cliente que não cancelou.
+
+```{r}
+
+View(ifelse(dataset$Cancelou ==0, "Cancelou",dataset$Cancelou))
+
+dataset$Cancelou <- ifelse(dataset$Cancelou ==0, "Não Cancelou",dataset$Cancelou)
+dataset$Cancelou <- ifelse(dataset$Cancelou ==1, "Cancelou",dataset$Cancelou)
+
+dfClientesCancelamento = questionr::freq(dataset$Cancelou, total = TRUE)
+names(dfClientesCancelamento)<- c("Frequência_Relativa",
+                                  "Frequência_Absoluta")
+
+kbl(dfClientesCancelamento[1:2]) %>%
+  kable_styling(bootstrap_options = c("striped", "hover"))
+
+  
+```
+
+
+
+
+```{r}
+
+dataset%>%
+  ggplot(aes(Cancelou, fill = as.factor(Cancelou))) +
+  geom_bar(stat = "count") +
+  labs(fill = "Cancelamento dos Produtos")+
+  ylab("Frequência")
+
+```
