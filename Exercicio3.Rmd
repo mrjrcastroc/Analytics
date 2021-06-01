@@ -1,0 +1,194 @@
+---
+title: "Análise Exploratória de Dados"
+author: "Luiz Carlos Castro Cunha Junior"
+date: "29/05/2021"
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+  ![](download.png)
+
+## Estudo de Caso: Imóveis
+
+De acordo com a localização de um imóvel, sabe-se que o valor do mesmo pode variar substancialmente. Na base de dados disponibilizada são fornecidas informações sobre o valor do imóvel (R$ mil) por m2, a distância para estação de metrô (km), a idade e a região.
+  
+
+* Faça a distribuição de frequências da variável idade.
+* Faça a distribuição de frequências da variável região.
+* Qual o valor do mínimo, máximo, mediana, Q1 e Q3 da variável distância ao metrô? Interprete os valores. 
+* Qual o valor do mínimo, máximo, mediana, Q1 e Q3 da variável valor do imóvel (R$ mil) por m²? Interprete os valores. 
+
+  ```{r, include=FALSE}
+setwd("C:/Users/thiag/OneDrive/Área de Trabalho/FIA- Analytics_DataScience/Analytics/20-05-21/20.05.2021 e 25.05.2021 - Analise Exploratória de Dados - Profa. Patricia Ueda/Exercicio3")
+
+```
+
+### Carregando os pacotes a serem utilizados
+
+```{r Carregando os pacotes a serem utilizados, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(readxl)
+library(rstatix)
+library(moments)
+library(knitr)
+library(rmarkdown)
+library(kableExtra)
+library(emmeans)
+library(htmltools)
+library(dplyr)
+library(questionr)
+
+
+```
+### Importando o Conjunto de Dados
+
+```{r Importando os dados e visualizando as primeiras colunas, warnings = FALSE}
+
+dataset<-readxl::read_xlsx("Exercícios.xlsx",
+                           sheet = "Base de Dados 3")
+
+
+```
+### Visualizando o tipo de dados das variáveis
+
+```{r Visualizando os tipos de dados}
+str(dataset)
+
+``` 
+
+###  Visualizando as primeiras linhas do Dataset
+
+```{r, echo=TRUE}
+kbl(dataset[1:5,2:5]) %>%
+  kable_paper()
+
+```
+
+### Perguntas de Negócio
+
+> Faça a distribuição de frequências da variável idade.
+
+```{R}
+
+dfFrequenciaIdade <- questionr::freq(dataset$Idade_imovel, total = TRUE)
+colnames(dfFrequenciaIdade) <- c("Frequência Absoluta", "Frequência Relativa")
+
+kbl(dfFrequenciaIdade[, 1:2]) %>%
+  kable_paper()
+
+
+```
+
+> Faça a distribuição de frequências da variável região.
+
+```{r}
+
+dfFrequenciaIdade <- questionr::freq(dataset$Região, total = TRUE)
+colnames(dfFrequenciaIdade) <- c("Frequência Absoluta", "Frequência Relativa")
+
+kbl(dfFrequenciaIdade[, 1:2]) %>%
+  kable_paper()
+
+
+```
+
+> Qual o valor do mínimo, máximo, mediana, Q1 e Q3 da variável distância ao metrô? Interprete os valores.
+
+Podemos observar que a localização dos imóveis estão variando aproximadamente 1.3 KM de distância em relação ao metrô.
+
+
+```{r, echo=FALSE}
+  
+df<-  data.frame(c(
+      Minimo = min(dataset$Distancia_metro_Km),
+      Máximo = max(dataset$Distancia_metro_Km),
+      Média  = mean(dataset$Distancia_metro_Km),
+      Mediana =median(dataset$Distancia_metro_Km),
+      PrimeiroQuartil = unname(quantile(dataset$Distancia_metro_Km,0.25)),
+      SegundoQuartil  = unname(quantile(dataset$Distancia_metro_Km, 0.50)),
+      TerceiroQuartil = unname(quantile(dataset$Distancia_metro_Km, 0.75)),
+      Amplitude = max(dataset$Distancia_metro_Km) - min(dataset$Distancia_metro_Km),
+      LimiteInferior = ( unname(quantile(dataset$Distancia_metro_Km, .25)) - 1.5 * IQR(dataset$Distancia_metro_Km)),
+      IntervaloInterQuartil = IQR(dataset$Distancia_metro_Km)))
+
+colnames(df)<- "Valores"
+
+kbl(df) %>%
+  kable_paper()
+
+
+```
+
+```{r, warning=FALSE}
+
+dataset %>%
+  ggplot(aes(dataset$Distancia_metro_Km, fill = dataset$Região)) +
+  geom_boxplot(bins = 30)+
+  xlab("Distância Metro(KM)")+
+  ylab("Frequência")
+
+
+```
+
+```{r, warning=FALSE}
+dataset %>%
+  ggplot(aes(dataset$Distancia_metro_Km, fill = dataset$Região)) +
+  geom_histogram(bins = 30)+
+  xlab("Distância Metro(KM)")+
+  ylab("Frequência")
+
+```
+
+> Qual o valor do mínimo, máximo, mediana, Q1 e Q3 da variável valor do imóvel (R$ mil) por m²? Interprete os valores. 
+
+De acordo com os valores apresentados abaixo podemos observar que o valor dos imóveis estão variando a aproxidamente R$ 14.140,00. 
+
+Sendo que o imóvel mais barato está custando R$ 1.520,00 e o mais caro  R$ 15.660,00
+
+
+```{r, echo=FALSE}
+  
+df<-  data.frame(c(
+      Minimo = min(dataset$Mil_reais_m2),
+      Máximo = max(dataset$Mil_reais_m2),
+      Média  = mean(dataset$Mil_reais_m2),
+      Mediana =median(dataset$Mil_reais_m2),
+      PrimeiroQuartil = unname(quantile(dataset$Mil_reais_m2,0.25)),
+      SegundoQuartil  = unname(quantile(dataset$Mil_reais_m2, 0.50)),
+      TerceiroQuartil = unname(quantile(dataset$Mil_reais_m2, 0.75)),
+      Amplitude = max(dataset$Mil_reais_m2) - min(dataset$Mil_reais_m2),
+      LimiteInferior = ( unname(quantile(dataset$Mil_reais_m2, .25)) - 1.5 * IQR(dataset$Mil_reais_m2)),
+      IntervaloInterQuartil = IQR(dataset$Mil_reais_m2)))
+
+colnames(df)<- "Valores"
+
+kbl(df) %>%
+  kable_paper()
+
+
+```
+
+```{r, warning=FALSE}
+
+dataset %>%
+  ggplot(aes(dataset$Mil_reais_m2, fill = dataset$Região)) +
+  geom_boxplot(bins = 30)+
+  xlab("Valor do Imôvel(Mil) por M2")+
+  ylab("Frequência")
+
+
+```
+
+```{r, warning=FALSE}
+dataset %>%
+  ggplot(aes(dataset$Mil_reais_m2, fill = dataset$Região)) +
+  geom_histogram(bins = 30)+
+  xlab("Valor do Imôvel(Mil) por M2")+
+  ylab("Frequência")
+
+```
+
+
